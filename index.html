@@ -5,66 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MR.PEKSHA AI Chatbot</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #121212;
-        color: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-    }
-    .chat-container {
-        width: 400px;
-        max-width: 95%;
-        background-color: #1e1e1e;
-        border-radius: 15px;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-    }
-    #chat {
-        height: 400px;
-        overflow-y: auto;
-        border: 1px solid #333;
-        border-radius: 10px;
-        padding: 10px;
-        margin-bottom: 10px;
-        background-color: #1a1a1a;
-    }
-    .message {
-        margin: 5px 0;
-        padding: 8px 12px;
-        border-radius: 10px;
-        max-width: 80%;
-        word-wrap: break-word;
-    }
-    .user { background-color: #007bff; align-self: flex-end; }
-    .bot { background-color: #333; align-self: flex-start; }
-    input[type="text"] {
-        padding: 10px;
-        border-radius: 10px;
-        border: none;
-        flex: 1;
-        margin-right: 5px;
-        background-color: #2c2c2c;
-        color: #fff;
-    }
-    button {
-        padding: 10px;
-        border: none;
-        border-radius: 10px;
-        background-color: #28a745;
-        color: white;
-        cursor: pointer;
-    }
+    body { font-family: Arial, sans-serif; background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .chat-container { width: 500px; max-width: 95%; background: #1e1e1e; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 0 15px #000; }
+    #chat { height: 450px; overflow-y: auto; border: 1px solid #333; border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #1a1a1a; scroll-behavior: smooth; }
+    .message { margin: 5px 0; padding: 10px 14px; border-radius: 12px; max-width: 80%; word-wrap: break-word; line-height: 1.4; opacity: 0; animation: fadeIn 0.3s forwards; }
+    .user { background: #007bff; align-self: flex-end; }
+    .bot { background: #333; align-self: flex-start; }
+    .bot img { max-width: 100%; border-radius: 10px; margin-top: 5px; }
+    #typingIndicator { font-style: italic; color: #aaa; margin-bottom: 5px; display: none; }
+    @keyframes fadeIn { to { opacity: 1; } }
+    input[type="text"] { padding: 12px; border-radius: 10px; border: none; flex: 1; margin-right: 5px; background: #2c2c2c; color: #fff; }
+    button { padding: 12px; border: none; border-radius: 10px; background: #28a745; color: white; cursor: pointer; transition: 0.2s; }
+    button:hover { background: #218838; }
 </style>
 </head>
 <body>
 
 <div class="chat-container">
     <div id="chat"></div>
+    <div id="typingIndicator">MR.PEKSHA is typing...</div>
     <div style="display: flex;">
         <input type="text" id="userInput" placeholder="ඔබගේ පණිවිඩය...">
         <button onclick="sendMessage()">Send</button>
@@ -74,9 +33,11 @@
 <script>
 const chat = document.getElementById("chat");
 const input = document.getElementById("userInput");
+const typingIndicator = document.getElementById("typingIndicator");
 
-// ⚠️ Your Hugging Face token (public in this HTML)
-const HF_TOKEN = "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";
+// ⚠️ Public tokens for testing only
+const HF_TOKEN_TEXT = "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"; // Text model
+const HF_TOKEN_IMAGE = "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"; // Image model
 
 async function sendMessage() {
     const userMessage = input.value.trim();
@@ -86,37 +47,29 @@ async function sendMessage() {
     input.value = "";
 
     // Rule-based response
-    if (userMessage.toLowerCase().includes("මාව හැදුවේ කවුද") || 
-        userMessage.toLowerCase().includes("who made you")) {
+    if (userMessage.toLowerCase().includes("මාව හැදුවේ කවුද") || userMessage.toLowerCase().includes("who made you")) {
         addMessage("මාව හැදුවේ MR.PEKSHA 😎", "bot");
         return;
     }
 
+    typingIndicator.style.display = "block";
+
     try {
-        const response = await fetch(
-            "https://api-inference.huggingface.co/models/moonshotai/Kimi-K2-Instruct-0905",
-            {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${HF_TOKEN}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ inputs: userMessage })
-            }
-        );
-
-        const data = await response.json();
-        let botMessage = "Sorry, no response 😕";
-
-        // Hugging Face API returns array with generated_text
-        if (data && data[0] && data[0].generated_text) {
-            botMessage = data[0].generated_text;
+        if (userMessage.toLowerCase().startsWith("image:")) {
+            // Image generation
+            const prompt = userMessage.slice(6).trim();
+            const imgUrl = await generateImage(prompt);
+            addImage(imgUrl, "bot");
+        } else {
+            // Text generation
+            const botText = await generateText(userMessage);
+            await simulateTyping(botText);
         }
-
-        addMessage(botMessage, "bot");
-    } catch (error) {
-        console.error(error);
+    } catch (e) {
+        console.error(e);
         addMessage("Error: API not reachable 😢", "bot");
+    } finally {
+        typingIndicator.style.display = "none";
     }
 }
 
@@ -128,9 +81,50 @@ function addMessage(message, sender) {
     chat.scrollTop = chat.scrollHeight;
 }
 
-input.addEventListener("keypress", function(e) {
-    if (e.key === "Enter") sendMessage();
-});
+function addImage(url, sender) {
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("message", sender);
+    const img = document.createElement("img");
+    img.src = url;
+    msgDiv.appendChild(img);
+    chat.appendChild(msgDiv);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function generateText(inputText) {
+    const res = await fetch("https://api-inference.huggingface.co/models/moonshotai/Kimi-K2-Instruct-0905", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${HF_TOKEN_TEXT}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: inputText })
+    });
+    const data = await res.json();
+    if (data && data[0] && data[0].generated_text) return data[0].generated_text;
+    return "Sorry, no response 😕";
+}
+
+async function generateImage(prompt) {
+    const res = await fetch("https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${HF_TOKEN_IMAGE}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ inputs: prompt })
+    });
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+}
+
+// ChatGPT-style typing
+async function simulateTyping(text) {
+    const botDiv = document.createElement("div");
+    botDiv.classList.add("message", "bot");
+    chat.appendChild(botDiv);
+    for (let i=0; i<text.length; i++) {
+        botDiv.innerText += text.charAt(i);
+        chat.scrollTop = chat.scrollHeight;
+        await new Promise(r => setTimeout(r, 25));
+    }
+}
+
+input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
 </script>
 
 </body>
