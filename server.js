@@ -15,7 +15,7 @@ app.post("/chat", async (req,res)=>{
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       { model:"gpt-3.5-turbo", messages:[{role:"user", content:prompt}] },
-      { headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${OPENAI_API_KEY}` } }
+      { headers:{ "Content-Type":"application/json", "Authorization":`Bearer ${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}` } }
     );
     res.json({ text: response.data.choices[0].message.content });
   } catch(err) {
