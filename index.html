@@ -52,20 +52,11 @@ body {
   align-self: flex-end;
   box-shadow: 0 4px 12px rgba(0,123,255,0.3);
 }
-.user:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0,123,255,0.5);
-}
 .bot {
   background: linear-gradient(120deg, #333, #555);
   align-self: flex-start;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
-.bot:hover {
-  transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.5);
-}
-.bot img { max-width: 100%; border-radius: 10px; margin: 5px 0; }
 #typingIndicator {
   font-style: italic;
   color: #aaa;
@@ -109,8 +100,6 @@ button:hover { background: #218838; }
 const chat = document.getElementById("chat");
 const input = document.getElementById("userInput");
 const typingIndicator = document.getElementById("typingIndicator");
-
-// Backend API endpoint (server.js run වෙලා තියෙන folder එකේ)
 const API_ENDPOINT = "http://localhost:5000/chat";
 
 async function sendMessage(msgOverride){
@@ -127,6 +116,7 @@ async function sendMessage(msgOverride){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({prompt:userMessage})
     });
+
     const data = await response.json();
     await simulateTyping(data.text);
   }catch(err){
@@ -158,7 +148,9 @@ function addMessage(msg,sender){
   chat.scrollTop = chat.scrollHeight;
 }
 
-input.addEventListener("keypress", e=>{ if(e.key==="Enter") sendMessage(); });
+input.addEventListener("keypress", e=>{
+  if(e.key==="Enter") sendMessage();
+});
 </script>
 
 </body>
