@@ -3,100 +3,181 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MR.PEKSHA Offline AI Chatbot</title>
+<title>MR.PEKSHA Reasoning AI</title>
 <style>
-body { font-family: Arial, sans-serif; background: #121212; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-.chat-container { width: 500px; max-width: 95%; background: #1e1e1e; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 0 15px #000; }
-#chat { height: 450px; overflow-y: auto; border: 1px solid #333; border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #1a1a1a; scroll-behavior: smooth; }
-.message { margin: 5px 0; padding: 10px 14px; border-radius: 12px; max-width: 80%; word-wrap: break-word; line-height: 1.4; opacity: 0; animation: fadeIn 0.3s forwards; }
-.user { background: #007bff; align-self: flex-end; }
-.bot { background: #333; align-self: flex-start; }
-#typingIndicator { font-style: italic; color: #aaa; margin-bottom: 5px; display: none; }
-@keyframes fadeIn { to { opacity: 1; } }
-input[type="text"] { padding: 12px; border-radius: 10px; border: none; flex: 1; margin-right: 5px; background: #2c2c2c; color: #fff; }
-button { padding: 12px; border: none; border-radius: 10px; background: #28a745; color: white; cursor: pointer; transition: 0.2s; }
-button:hover { background: #218838; }
+body { font-family: Arial, sans-serif; background: #121212; color: #fff; display:flex; justify-content:center; align-items:center; height:100vh; margin:0;}
+.chat-container { width:760px; max-width:95%; background:#1e1e1e; border-radius:15px; padding:20px; display:flex; flex-direction:column; box-shadow:0 0 60px #000;}
+#chat { height:750px; overflow-y:auto; border:1px solid #333; border-radius:10px; padding:10px; margin-bottom:10px; background:#1a1a1a; scroll-behavior:smooth; display:flex; flex-direction:column; gap:5px;}
+.message { margin:5px 0; padding:12px 16px; border-radius:14px; max-width:85%; word-wrap:break-word; line-height:1.5; opacity:0; animation:fadeIn 0.3s forwards; white-space:pre-wrap; transition: transform 0.2s, box-shadow 0.2s;}
+.user { background: linear-gradient(90deg,#007bff,#0056b3); align-self:flex-end; box-shadow:0 4px 8px rgba(0,123,255,0.3);}
+.user:hover{transform:scale(1.02);box-shadow:0 6px 12px rgba(0,123,255,0.5);}
+.bot { background: linear-gradient(90deg,#333,#555); align-self:flex-start; box-shadow:0 4px 8px rgba(0,0,0,0.3);}
+.bot:hover{transform:scale(1.02);box-shadow:0 6px 12px rgba(0,0,0,0.5);}
+.bot img{border-radius:10px;margin:5px 0;}
+.bot a{color:#4da6ff;text-decoration:underline;}
+.code{background:#222;color:#0f0;padding:5px;border-radius:5px;display:block;margin:5px 0;font-family:monospace;}
+#typingIndicator{font-style:italic;color:#aaa;margin-bottom:5px;display:none;}
+@keyframes fadeIn{to{opacity:1;}}
+input[type="text"]{padding:12px;border-radius:10px;border:none;flex:1;margin-right:5px;background:#2c2c2c;color:#fff;}
+button{padding:12px;border:none;border-radius:10px;background:#28a745;color:white;cursor:pointer;transition:0.2s;}
+button:hover{background:#218838;}
+strong{font-weight:bold;}
+em{font-style:italic;}
+table{border-collapse:collapse;width:100%;margin:5px 0;}
+table,th,td{border:1px solid #555;}
+th,td{padding:5px;text-align:left;}
+.suggestions{font-style:italic;opacity:0.85;margin-top:5px;font-size:0.9em;color:#ccc;}
+.image-gallery{display:flex;gap:5px;flex-wrap:wrap;margin:5px 0;}
+.image-gallery img{border-radius:8px;width:calc(33% - 4px);}
+.followup-button{background:#4da6ff;color:#fff;border:none;padding:5px 10px;margin:3px;border-radius:5px;cursor:pointer;}
+.followup-button:hover{background:#1a73e8;}
 </style>
 </head>
 <body>
 
 <div class="chat-container">
     <div id="chat"></div>
-    <div id="typingIndicator">MR.PEKSHA is typing...</div>
-    <div style="display: flex;">
+    <div id="typingIndicator">MR.PEKSHA is thinking...</div>
+    <div style="display:flex;">
         <input type="text" id="userInput" placeholder="ඔබගේ පණිවිඩය...">
         <button onclick="sendMessage()">Send</button>
     </div>
 </div>
 
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("userInput");
-const typingIndicator = document.getElementById("typingIndicator");
+const chat=document.getElementById("chat");
+const input=document.getElementById("userInput");
+const typingIndicator=document.getElementById("typingIndicator");
 
-// Simple offline AI logic
-const knowledgeBase = [
-    { q: /hello|hi|හෙලෝ|හයි/i, a: ["Hi there! 😎", "Hello! කොහොමද?"] },
-    { q: /who made you|මාව හැදුවේ කවුද/i, a: ["මාව හැදුවේ MR.PEKSHA 😎"] },
-    { q: /how are you|ඔයා කොහොමද/i, a: ["මම හොඳින්, ඔබට කොහොමද?", "හොඳයි! ඔබට කොහොමද?"] },
-    { q: /weather|කාලගුණ/i, a: ["මම කාලගුණ predict කරන්න බැහැ 😅", "ඔයාගේ location අනුව බලන්න app එකෙන්!"] },
-    { q: /image: (.+)/i, a: ["ඔයා image request කරනවා 😎, නමුත් offline version එකෙන් මම image generate කරන්න බැහැ 😅"] },
+// Conversation memory
+let memory=[];
+
+// Knowledge base
+const knowledgeBase=[
+{q:/hello|hi|හෙලෝ|හයි/i,a:["Hi there! 😎 How are you today?","Hello! කොහොමද?"]},
+{q:/who made you|මාව හැදුවේ කවුද/i,a:["මාව හැදුවේ MR.PEKSHA Reasoning AI 😎"]},
+{q:/how are you|ඔයා කොහොමද/i,a:["මම හොඳින්, ඔබට කොහොමද?","හොඳයි! ඔබට කොහොමද?"]},
+{q:/weather|කාලගුණ/i,a:["මම කාලගුණ predict කරන්න බැහැ 😅","ඔයාගේ location අනුව බලන්න weather app එකෙන්!"]},
+{q:/code|කේත/i,a:["```javascript\nconsole.log('Hello from MR.PEKSHA Reasoning AI!');\n```"]},
+{q:/image: (.+)/i,a:["image_request"]}
 ];
 
-function sendMessage() {
-    const userMessage = input.value.trim();
-    if (!userMessage) return;
+// Fallback responses
+const defaultResponses=[
+"Interesting! මට තව කියන්න.",
+"Can you explain more? 🤔",
+"මම ඒ ගැන තේරුම් ගන්න try කරනවා...",
+"Wow! Tell me more.",
+"ඔයා කියනවා ඇත්තද?",
+"That’s fascinating! Keep going...",
+"මට ඒ ගැන වැඩිදුර කියන්න.",
+"Hmm… let me think 🤔"
+];
 
-    addMessage(userMessage, "user");
-    input.value = "";
+// Multi-step reasoning conversation tree
+const reasoningTree={
+"start":["Do you want to learn coding?","Do you want to see fun images?","Ask me anything else!"],
+"Do you want to learn coding?":["I can show examples in JavaScript, Python, or HTML. Which one?"],
+"Do you want to see fun images?":["Type 'image: cat' or 'image: landscape' to see multiple previews!"],
+"Ask me anything else!":["Try asking 'who made you', 'how are you', or 'weather'."]
+};
 
-    typingIndicator.style.display = "block";
+// Send message
+function sendMessage(msgOverride){
+    const userMessage=msgOverride||input.value.trim();
+    if(!userMessage) return;
 
-    setTimeout(() => {
-        const botReply = generateReply(userMessage);
+    addMessage(userMessage,"user");
+    memory.push({role:"user",content:userMessage});
+    if(memory.length>50) memory.shift();
+
+    input.value="";
+    typingIndicator.style.display="block";
+
+    setTimeout(()=>{
+        const botReply=generateReply(userMessage);
         simulateTyping(botReply);
-    }, 500);
+    },500);
 }
 
-function generateReply(msg) {
-    for (const entry of knowledgeBase) {
-        if (entry.q.test(msg)) {
-            return entry.a[Math.floor(Math.random()*entry.a.length)];
+// Generate reply
+function generateReply(msg){
+    for(const entry of knowledgeBase){
+        if(entry.q.test(msg)){
+            const response=entry.a[Math.floor(Math.random()*entry.a.length)];
+            if(response==="image_request"){
+                return {type:"image",prompt: msg.match(/image: (.+)/i)[1]};
+            }
+            return {type:"text",content: response};
         }
     }
-    // Default fallback - simulate AI response
-    const defaultResponses = [
-        "Interesting! මට තව කියන්න.",
-        "Can you explain more? 🤔",
-        "මම ඒ ගැන තේරුම් ගන්න try කරනවා...",
-        "Wow! Tell me more.",
-        "ඔයා කියනවා ඇත්තද?"
-    ];
-    return defaultResponses[Math.floor(Math.random()*defaultResponses.length)];
+    // If matches reasoning tree
+    let followUps=reasoningTree[msg];
+    if(!followUps) followUps=Object.keys(reasoningTree);
+    return {type:"text",content:defaultResponses[Math.floor(Math.random()*defaultResponses.length)],followUps:followUps};
 }
 
-async function simulateTyping(text) {
-    const botDiv = document.createElement("div");
-    botDiv.classList.add("message", "bot");
+// Typing animation
+async function simulateTyping(reply){
+    const botDiv=document.createElement("div");
+    botDiv.classList.add("message","bot");
     chat.appendChild(botDiv);
 
-    for (let i = 0; i < text.length; i++) {
-        botDiv.innerText += text.charAt(i);
-        chat.scrollTop = chat.scrollHeight;
-        await new Promise(r => setTimeout(r, 25));
+    if(reply.type==="image"){
+        let imagesHTML='<div class="image-gallery">';
+        for(let i=0;i<3;i++){
+            imagesHTML+=`<img src="https://via.placeholder.com/${200+Math.random()*50}x${120+Math.random()*50}?text=${encodeURIComponent(reply.prompt+' '+(i+1))}" alt="Simulated Image">`;
+        }
+        imagesHTML+='</div>';
+        botDiv.innerHTML=`<em>Simulated images for:</em> <strong>${reply.prompt}</strong>${imagesHTML}`;
+    } else {
+        const text=reply.content;
+        if(text.startsWith("```") && text.endsWith("```")){
+            const codeContent=text.slice(3,-3);
+            const codeBlock=document.createElement("pre");
+            codeBlock.classList.add("code");
+            codeBlock.innerText=codeContent;
+            botDiv.appendChild(codeBlock);
+        } else {
+            for(let i=0;i<text.length;i++){
+                botDiv.innerText+=text.charAt(i);
+                chat.scrollTop=chat.scrollHeight;
+                await new Promise(r=>setTimeout(r,15));
+            }
+        }
+        const urlRegex=/(https?:\/\/[^\s]+)/g;
+        botDiv.innerHTML=botDiv.innerHTML.replace(urlRegex,'<a href="$1" target="_blank">$1</a>');
     }
-    typingIndicator.style.display = "none";
+
+    // Interactive reasoning follow-up buttons
+    if(reply.followUps){
+        const sugDiv=document.createElement("div");
+        sugDiv.classList.add("message","bot","suggestions");
+        reply.followUps.forEach(s=>{
+            const btn=document.createElement("button");
+            btn.classList.add("followup-button");
+            btn.innerText=s;
+            btn.onclick=()=>sendMessage(s);
+            sugDiv.appendChild(btn);
+        });
+        chat.appendChild(sugDiv);
+    }
+
+    typingIndicator.style.display="none";
+    chat.scrollTop=chat.scrollHeight;
 }
 
-function addMessage(message, sender) {
-    const msgDiv = document.createElement("div");
-    msgDiv.classList.add("message", sender);
-    msgDiv.innerText = message;
+// Add message
+function addMessage(message,sender){
+    const msgDiv=document.createElement("div");
+    msgDiv.classList.add("message",sender);
+    msgDiv.innerText=message;
     chat.appendChild(msgDiv);
-    chat.scrollTop = chat.scrollHeight;
+    chat.scrollTop=chat.scrollHeight;
 }
 
-input.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+// Enter key
+input.addEventListener("keypress",e=>{if(e.key==="Enter") sendMessage();});
 </script>
 
 </body>
